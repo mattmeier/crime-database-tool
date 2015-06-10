@@ -1,0 +1,26 @@
+1433295240394	Move compilation unit
+1433295262712	Move compilation unit
+1433295267224	Move compilation unit
+1433295271679	Move compilation unit
+1433295274760	Move compilation unit
+1433295279325	Move compilation unit
+1433295283452	Move compilation unit
+1433295287760	Move compilation unit
+1433295292308	Move compilation unit
+1433295613737	Delete element
+1433348050862	Rename package 'camelinaction'
+1433348144766	Rename package 'camelinactionProducer'
+1433358644314	Rename type 'Consumer'
+1433359051963	Rename type 'MainConsumer'
+1433379910838	Encapsulate field 'crimesRegister'
+1433385719228	Convert local variable 'scanner' to field
+1433429217408	Delete element
+1433430856317	Rename type 'DatabaseCommandTool'
+1433431797713	Rename type 'DatabaseInterface'
+1433432144703	Extract interface 'DatabaseInterface'
+1433432323437	Rename type 'DatabaseQueryEngine'
+1433432377413	Extract interface 'DatabaseQueryEngine'
+1433432432788	Delete element
+1433432473792	Extract interface 'DatabaseQueryEngine'
+1433432574593	Rename type 'DatabaseCategory'
+1433432702975	Extract interface 'GenericDatabaseType'

@@ -1,0 +1,199 @@
+package camelinactionConsumer;
+import java.util.*;
+
+public class Year extends DatabaseCategory {
+
+	// CONSTRUCTOR:
+	public Year (String yearNumber) { 
+		databaseType = "year";
+		name = yearNumber;
+		crimesRegister = new HashMap <Integer, Crime>();
+	}
+
+
+	// METHODS:
+
+	// overriding abstract method to return database type
+	@Override
+	public String GetDatabaseType( ) {
+		return "year";
+	}
+
+	
+	// method to get the IDs for all crimes in a certain city
+	@Override
+	public Vector<Integer> getCrimeIDsInCity(String cityName) {
+		return searchCrimesForString("city", cityName);
+	} 
+
+	
+	// method to get the IDs for all crimes of a certain category, given by ucrNcicCodeValue
+	@Override
+	public Vector<Integer> getCrimeIDsForCategory(int ucrNcicCodeValue) {
+		return searchCrimesForInt("ucrNcicCode", ucrNcicCodeValue);
+	} 
+
+	
+	// Method to get the IDs for all crimes of a certain year
+	@Override
+	public Vector<Integer> getCrimeIDsForYear(int year) {
+		Vector<Integer> ids = new Vector<Integer>();
+		if (Integer.parseInt(name) == year) {
+			ids = new Vector<Integer>(getCrimesRegister().keySet());
+		}
+		return ids;
+	} 
+
+	
+	// Method to get the IDs for all crimes of a certain month (in any year)
+	@Override
+	public Vector<Integer> getCrimeIDsForMonth(int month) {
+		return searchCrimesForInt("month", month);
+	} 
+
+	// Method to get the count of crimes for a given city
+	@Override
+	public Integer getCrimeCountForCity(String city) {
+		Vector<Integer> idVector = getCrimeIDsInCity(city); 
+		return idVector.size();
+	} 
+
+	
+	// Method to get the count of crimes for a given category
+	@Override
+	public Integer getCrimeCountForCategory(int ucrNcicCodeValue) {
+		Vector<Integer> idVector = getCrimeIDsForCategory(ucrNcicCodeValue); 
+		return idVector.size();
+	} 
+
+	
+	// Method to get the count of crimes for a given year
+	@Override
+	public Integer getCrimeCountForYear(int year) {
+		if (Integer.parseInt(name) == year) {
+			return getTotalCrimeCount();
+		}
+		else 
+			return 0;
+	} 
+
+	
+	// Method to get the count of crimes for a given month
+	@Override
+	public Integer getCrimeCountForMonth(int month) {
+		Vector<Integer> idVector = getCrimeIDsForMonth(month);
+		return idVector.size();
+	} 
+
+	
+	// Method to get the 3 cities with the most crimes
+	@Override
+	public String[] getMost3Cities() {
+		return getMost3StringValues("city");
+	}
+
+	
+	// Method to get the 3 crime categories with the most crimes
+	@Override
+	public Integer[] getMost3Categories() {
+		return getMost3IntValues("ucrNcicCode");
+	} 
+
+	
+	// Method to get the 3 years with the most crimes
+	@Override
+	public Integer[] getMost3Years() {
+		Integer[] array = {Integer.parseInt(name), -1, -1};
+		return array;
+	}
+
+	
+	// Method to get the 3 months with the most crimes
+	@Override
+	public Integer[] getMost3Months() {
+		return getMost3IntValues("month");
+	} 
+
+	
+	// Method to get the 3 cities with the most crimes
+	@Override
+	public String[] getLeast3Cities() {
+		return getLeast3StringValues("city");
+	}
+
+	
+	// Method to get the 3 crime categories with the least crimes
+	@Override
+	public Integer[] getLeast3Categories() {
+		return getLeast3IntValues("ucrNcicCode");
+	} 
+
+	
+	// Method to get the 3 years with the least crimes
+	@Override
+	public Integer[] getLeast3Years() {
+		Integer[] array = {Integer.parseInt(name), -1, -1};
+		return array;
+	}
+
+	
+	// Method to get the 3 months with the least crimes
+	@Override
+	public Integer[] getLeast3Months() {
+		return getLeast3IntValues("month");
+	} 
+	
+	// Method to get the average number of crimes per city
+	@Override
+	public Double getAveragePerCity() {
+		return getAverageCrimesPerStringValue("city");
+	}
+
+	
+	// Method to get the average number of crimes per category
+	@Override
+	public Double getAveragePerCategory() {
+		return getAverageCrimesPerIntValue("ucrNcicCode");
+	}
+
+	
+	// Method to get the average number of crimes per year
+	@Override
+	public Double getAveragePerYear() {
+		return (double) 1.0;
+	}
+
+	
+	// Method to get the average number of crimes per month
+	@Override
+	public Double getAveragePerMonth() {
+		return getAverageCrimesPerIntValue("month");
+	}
+
+	@Override
+	public Double getMedianPerCity() {
+		return getMedianCrimesForStringValue("city");
+	}
+
+	
+	// Method to get the median number of crimes per category
+	@Override
+	public Double getMedianPerCategory() {
+		return getMedianCrimesForIntValue("ucrNcicCode");
+	}
+
+	
+	// Method to get the median number of crimes per year
+	@Override
+	public Double getMedianPerYear() {
+		return (double) 1.0;
+	}
+
+	
+	// Method to get the median number of crimes per month
+	@Override
+	public Double getMedianPerMonth() {
+		return getMedianCrimesForIntValue("month");
+	}
+
+}

@@ -1,0 +1,11 @@
+package camelinactionConsumer;
+
+
+class DatabaseTest {
+	public static void main(String[] args) throws Exception {
+		
+		DatabaseInterface.initializeSystem(); 
+		
+	
+	}
+}

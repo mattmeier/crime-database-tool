@@ -1,0 +1,189 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package camelinactionConsumer;
+
+import java.util.*;
+
+import org.apache.camel.CamelContext;
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
+import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.impl.DefaultCamelContext;
+
+import javax.jms.ConnectionFactory;
+
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.camel.component.jms.JmsComponent;
+
+
+public class MainDatabaseConsumer {
+
+	private static Map <String, City> citiesRegister; // a hashmap with all cities in the database, with their name as key
+	private static Map <Integer, Year> yearsRegister; // a hashmap with all years in the database, with their integer year value as key
+	private static Map <Integer, Month> monthsRegister; // a hashmap with all months in the database, with their integer month value, i.e. 1-12, as key
+	private static Map <Integer, CrimeCategory> categoriesRegister; // a hashmap with all crime categories in the database, with their category integer code as key
+	private static MainDatabase myMainDatabase; // the main database containing all crimes 
+	private MainDatabaseConsumer(){};
+
+	// MainDatabaseConsumer is a Singleton
+	public static MainDatabaseConsumer getInstance(){
+		if (myConsumer == null) {
+			// TO DO: REMOVE!
+			System.out.println("New Main Database Consumer Created!");
+			myConsumer = new MainDatabaseConsumer();
+			citiesRegister = new HashMap <String, City>();
+			yearsRegister = new HashMap <Integer, Year>();
+			monthsRegister = new HashMap <Integer, Month>();
+			categoriesRegister= new HashMap <Integer, CrimeCategory>();
+            myMainDatabase = new MainDatabase();
+		}
+		return myConsumer;
+	}
+	private static MainDatabaseConsumer myConsumer = null;
+
+	// METHODS:
+	
+	//Helper method to add a new crime to the DatabaseInterface
+	public static void addCrime( Crime newCrime ) {
+
+		// First, add the new crime to the the main database with all crimes
+		myMainDatabase.addCrime(newCrime);
+
+		// Now check, whether the crime is in a city, year, month or category not yet covered
+		// check for city
+		String cityName = newCrime.getCity();
+		if (!citiesRegister.containsKey(cityName)) {
+			// create this new city
+			City newCity = new City(cityName);
+			// add the new city to database
+			citiesRegister.put(cityName, newCity);
+		}
+
+		// check for year
+		int year = newCrime.getYear();
+		if (!yearsRegister.containsKey(year)) {
+			// create this new year
+			Year newYear = new Year(Integer.toString(year));
+			// add the new year to database
+			yearsRegister.put(year, newYear);
+		}
+
+		// check for month
+		int month = newCrime.getMonth();
+		if (!monthsRegister.containsKey(month)) {
+			// create this new month
+			Month newMonth= new Month(Integer.toString(month));
+			// add the new month to database
+			monthsRegister.put(month, newMonth);
+		}
+
+		// check for category
+		int categoryCode = newCrime.getCategory();
+		if (!categoriesRegister.containsKey(categoryCode)) {
+			// create this new category
+			CrimeCategory newCategory = new CrimeCategory(Integer.toString(categoryCode));
+			// add the new category to database
+			categoriesRegister.put(categoryCode, newCategory);
+		}
+
+		// Finally, add the crime to the correct city, year, month and category
+		City crimeCity = citiesRegister.get(cityName);
+		crimeCity.addCrime(newCrime);
+		Year crimeYear = yearsRegister.get(year);
+		crimeYear.addCrime(newCrime);
+		Month crimeMonth = monthsRegister.get(month);
+		crimeMonth.addCrime(newCrime);
+		CrimeCategory crimeCategory = categoriesRegister.get(categoryCode);
+		crimeCategory.addCrime(newCrime);
+		// TO DO: REMOVE!!!
+		System.out.println(myMainDatabase.getCrimesRegister());
+
+	}
+	
+	public static Map <String, City> getCitiesRegister () {
+		return citiesRegister;
+	}
+	
+	public static Map <Integer, Year> getYearsRegister () {
+		return yearsRegister;
+	}
+	
+	public static Map <Integer, Month> getMonthsRegister () {
+		return monthsRegister;
+	}
+	
+	public static Map <Integer, CrimeCategory> getCategoriesRegister () {
+		return categoriesRegister;
+	}
+	
+	public static MainDatabase getMainDatabase () {
+		return myMainDatabase;
+	}
+
+	public static void main(String args[]) throws Exception {
+		
+		myConsumer = MainDatabaseConsumer.getInstance();
+		
+		// create CamelContext
+		CamelContext context = new DefaultCamelContext();
+
+		// connect to ActiveMQ JMS broker listening on localhost on port 61616
+		ConnectionFactory connectionFactory = 
+				new ActiveMQConnectionFactory("tcp://localhost:61616");
+		context.addComponent("jms",
+				JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
+
+		// add our route to the CamelContext
+		context.addRoutes(new RouteBuilder() {
+			public void configure() {
+				from("jms:queue:MPCS_51050_final_main_database")
+				.log("RECEIVED:  jms queue: ${body} from file: ${header.CamelFileNameOnly}")
+				.process(new Processor() {
+					public void process(Exchange e) throws Exception {
+						String body = e.getIn().getBody(String.class);
+						String[] parts = body.split(","); // extract various substrings from data
+						String id = parts[0].replaceAll("\\s+","");
+						String city = parts[1].replaceAll("^\\s+", "");
+						String dateTime = parts[2].replaceAll("^\\s+", "");
+
+						// Furthermore, create classes and add crimes to facilitate queries and statistics
+						//int uniqueID, String city, String cDateTime, String address, int district, String beat, int grid, String crimeDescr, int ucrNcicCode, double latitude, double longitude
+						Crime newCrime = new Crime(Integer.parseInt(id), city, dateTime, parts[3].replaceAll("^\\s+", ""), Integer.parseInt(parts[4].replaceAll("^\\s+", "")), parts[5].replaceAll("^\\s+", ""), Integer.parseInt(parts[6].replaceAll("^\\s+", "")),
+								 parts[7].replaceAll("^\\s+", ""), Integer.parseInt(parts[8].replaceAll("^\\s+", "")), Double.parseDouble(parts[9].replaceAll("^\\s+", "")), Double.parseDouble(parts[10].replaceAll("^\\s+", "")));
+						System.out.println(String.format("%d,%s,%s,%s,%d,%s,%d,%s,%d,%f,%f", Integer.parseInt(id), city, dateTime, parts[3].replaceAll("^\\s+", ""), Integer.parseInt(parts[4].replaceAll("^\\s+", "")), parts[5].replaceAll("^\\s+", ""), Integer.parseInt(parts[6].replaceAll("^\\s+", "")),
+								 parts[7].replaceAll("^\\s+", ""), Integer.parseInt(parts[8].replaceAll("^\\s+", "")), Double.parseDouble(parts[9].replaceAll("^\\s+", "")), Double.parseDouble(parts[10].replaceAll("^\\s+", "")))); // print out the crime currently being added
+						//System.out.println(newCrime);
+						addCrime(newCrime);
+						
+					} });
+				//.bean(MainDatabaseConsumer.class, "addCrimesToClasses"); // create crimes as Java objects and cities, years months and crime category classes for statistics and queries
+			}
+		});
+		
+
+		// start the route and let it do its work
+		context.start();
+		Thread.sleep(5000);
+
+		// stop the CamelContext
+		context.stop();
+		
+		// TO DO: REMOVE!!!
+				for (int i = 0; i<=10; i++)
+					System.out.println(myMainDatabase.getCrimesRegister().size());
+	}
+}

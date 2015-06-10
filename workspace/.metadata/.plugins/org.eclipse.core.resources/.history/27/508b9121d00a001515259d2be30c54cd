@@ -1,0 +1,490 @@
+package camelinactionConsumer;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Scanner;
+
+import camelinactionProducer.Producer;
+
+public class DatabaseQueryEngineImpl implements DatabaseQueryEngine {
+
+	private Map <String, City> citiesRegister; // a hashmap with all cities in the database, with their name as key
+	private Map <Integer, Year> yearsRegister; // a hashmap with all years in the database, with their integer year value as key
+	private Map <Integer, Month> monthsRegister; // a hashmap with all months in the database, with their integer month value, i.e. 1-12, as key
+	private Map <Integer, CrimeCategory> categoriesRegister; // a hashmap with all crime categories in the database, with their category integer code as key
+	private MainDatabase myMainDatabase; // the main database containing all crimes
+
+	// DatabaseQueryEngine is the layer below the DatabaseInterface one
+	public DatabaseQueryEngineImpl(){
+
+		citiesRegister = new HashMap <String, City>();
+		yearsRegister = new HashMap <Integer, Year>();
+		monthsRegister = new HashMap <Integer, Month>();
+		categoriesRegister= new HashMap <Integer, CrimeCategory>();
+		myMainDatabase = new MainDatabase();
+
+	}
+
+	private static Scanner scanner;
+
+	// METHODS:
+
+	// STARTING SYSTEM:
+	// NOTE: only call this once
+	// Method to initialize the system
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#initializeDatabaseEngine()
+	 */
+	public void initializeDatabaseEngine() throws Exception {
+		System.out.println("Only do initialization once ever - after having done so use synchronize and start method (synchronizeAndStartSystem) to get the system running!");
+		// first run the producer to read in the crimes from the large main source csv file, split them up and send each crime separately to the data channel queue
+		try {
+			Producer.main(null);
+			Thread.sleep(2000); //pause for 2 seconds before calling the consumer
+		} catch(InterruptedException ex) {
+			Thread.currentThread().interrupt();
+		}
+
+		// next run the consumer to pull the single messages per crime from the data channel and send for each crime a new message with the crime data to various main database, cities, years, months and crime category queues
+		DataFeedConsumer.main(null); 	
+	}
+
+	//Helper method to add a new crime to the DatabaseQueryEngine
+	// creates crime object as well as cities, years, months and crime category objects as needed
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#addCrime(camelinactionConsumer.Crime)
+	 */
+	public void addCrime( Crime newCrime ) {
+
+		// First, add the new crime to the the main database with all crimes
+		myMainDatabase.addCrime(newCrime);
+
+		// Now check, whether the crime is in a city, year, month or category not yet covered
+		// check for city
+		String cityName = newCrime.getCity();
+		if (!citiesRegister.containsKey(cityName)) {
+			// create this new city
+			City newCity = new City(cityName);
+			// add the new city to database
+			citiesRegister.put(cityName, newCity);
+		}
+
+		// check for year
+		int year = newCrime.getYear();
+		if (!yearsRegister.containsKey(year)) {
+			// create this new year
+			Year newYear = new Year(Integer.toString(year));
+			// add the new year to database
+			yearsRegister.put(year, newYear);
+		}
+
+		// check for month
+		int month = newCrime.getMonth();
+		if (!monthsRegister.containsKey(month)) {
+			// create this new month
+			Month newMonth= new Month(Integer.toString(month));
+			// add the new month to database
+			monthsRegister.put(month, newMonth);
+		}
+
+		// check for category
+		int categoryCode = newCrime.getCategory();
+		if (!categoriesRegister.containsKey(categoryCode)) {
+			// create this new category
+			CrimeCategory newCategory = new CrimeCategory(Integer.toString(categoryCode));
+			// add the new category to database
+			categoriesRegister.put(categoryCode, newCategory);
+		}
+
+		// Finally, add the crime to the correct city, year, month and category
+		City crimeCity = citiesRegister.get(cityName);
+		crimeCity.addCrime(newCrime);
+		Year crimeYear = yearsRegister.get(year);
+		crimeYear.addCrime(newCrime);
+		Month crimeMonth = monthsRegister.get(month);
+		crimeMonth.addCrime(newCrime);
+		CrimeCategory crimeCategory = categoriesRegister.get(categoryCode);
+		crimeCategory.addCrime(newCrime);
+	}
+
+	// Method to synchronize the system with the data in ActiveMQ
+	//Ensures we create the respective classes for these databases to do search and statistics operations
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#synchronizeSystem()
+	 */
+	public void synchronizeSystem() throws Exception {
+
+		// first, get the filenames for all crimes in the outbox data folder for the main database which contains all crimes
+		LinkedList<String> filenames = new LinkedList<String>();
+		File folder = new File("data/outbox/main_database");
+		for (final File fileEntry : folder.listFiles()) {
+			if(fileEntry.getName().contains(".csv"))
+				filenames.add(fileEntry.getName());
+		}
+		// then read in the files from the filenames list
+		for (int i=0; i<filenames.size(); i++) {
+			try {
+				scanner = new Scanner(new File("data/outbox/main_database/" + filenames.get(i)));
+				String inputLine = null;
+				while (scanner.hasNext()) {
+					inputLine = scanner.nextLine();
+					if (inputLine != null) {
+						String[] parts = inputLine.split(","); // extract various substrings from data
+						String id = parts[0].replaceAll("\\s+","");
+						String city = parts[1].replaceAll("^\\s+", "");
+						String dateTime = parts[2].replaceAll("^\\s+", "");
+
+						// Furthermore, create classes and add crimes to facilitate queries and statistics
+						//int uniqueID, String city, String cDateTime, String address, int district, String beat, int grid, String crimeDescr, int ucrNcicCode, double latitude, double longitude
+						Crime newCrime = new Crime(Integer.parseInt(id), city, dateTime, parts[3].replaceAll("^\\s+", ""), Integer.parseInt(parts[4].replaceAll("^\\s+", "")), parts[5].replaceAll("^\\s+", ""), Integer.parseInt(parts[6].replaceAll("^\\s+", "")),
+								parts[7].replaceAll("^\\s+", ""), Integer.parseInt(parts[8].replaceAll("^\\s+", "")), Double.parseDouble(parts[9].replaceAll("^\\s+", "")), Double.parseDouble(parts[10].replaceAll("^\\s+", "")));
+						//System.out.println(String.format("%d,%s,%s,%s,%d,%s,%d,%s,%d,%f,%f", Integer.parseInt(id), city, dateTime, parts[3].replaceAll("^\\s+", ""), Integer.parseInt(parts[4].replaceAll("^\\s+", "")), parts[5].replaceAll("^\\s+", ""), Integer.parseInt(parts[6].replaceAll("^\\s+", "")), parts[7].replaceAll("^\\s+", ""), Integer.parseInt(parts[8].replaceAll("^\\s+", "")), Double.parseDouble(parts[9].replaceAll("^\\s+", "")), Double.parseDouble(parts[10].replaceAll("^\\s+", "")))); // print out the crime currently being added
+						addCrime(newCrime);
+					}
+					else
+						System.out.println("An error occurred when reading in the crime from file - check csv format again!");
+				}
+			} catch(IOException e)
+			{
+				e.printStackTrace();
+			}
+		}
+
+	}
+
+	// SEARCHING INDIVIDUAL ENTRIES:
+	// Method to get the details for a specific crime, given its ID (start counting at 1)
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getDetailsForCrimeID(int)
+	 */
+	public String getDetailsForCrimeID( int crimeID ) {
+		Map <Integer, Crime> crimesRegister = myMainDatabase.getCrimesRegister();
+		if (!crimesRegister.containsKey(crimeID)) {
+			//System.out.println("Crime ID does not exist.");
+			return "Crime ID does not exist.";
+		}
+		Crime crime = crimesRegister.get(crimeID);
+		return crime.getDetails();
+	} 
+
+
+	// DOWNLOADING:
+	//Method to download all crime data in the database, in a single csv file with the given file name
+	//calling down to myMainDatabase layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadAllData(java.lang.String)
+	 */
+	public void callDownloadAllData( String outputFileName ) {
+		myMainDatabase.saveDetailsForAllCrimesToFile( outputFileName );
+	}
+
+	//Method to download data of all crimes in a certain city, given its name. The file will be a single csv file with the given file name.
+	//calling down to City layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadAllDataForCity(java.lang.String, java.lang.String)
+	 */
+	public void callDownloadAllDataForCity( String name, String outputFileName ) {
+		City myCity = citiesRegister.get(name);
+		myCity.saveDetailsForAllCrimesToFile( outputFileName );
+	}
+
+	//Method to download data of all crimes in a certain year. The file will be a single csv file with the given file name.
+	//calling down to Year layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadAllDataForYear(int, java.lang.String)
+	 */
+	public void callDownloadAllDataForYear( int year, String outputFileName ) {
+		Year myYear = yearsRegister.get(year);
+		myYear.saveDetailsForAllCrimesToFile( outputFileName );
+	}
+
+	//Method to download data of all crimes in a certain month. The file will be a single csv file with the given file name.
+	//calling down to Month layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadAllDataForMonth(int, java.lang.String)
+	 */
+	public void callDownloadAllDataForMonth( int month, String outputFileName ) {
+		Month myMonth = monthsRegister.get(month);
+		myMonth.saveDetailsForAllCrimesToFile( outputFileName );
+	}
+
+	//Method to download data of all crimes in a certain crime category, given its ucrNcicCode. The file will be a single csv file with the given file name.
+	//calling down to CrimeCategory layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadAllDataForCrimeCategory(int, java.lang.String)
+	 */
+	public void callDownloadAllDataForCrimeCategory( int ucrNcicCode, String outputFileName ) {
+		CrimeCategory myCategory = categoriesRegister.get(ucrNcicCode);
+		myCategory.saveDetailsForAllCrimesToFile( outputFileName );
+	}
+
+	//Method to download data of crimes in a certain city (indicated by cityName), filtered based on a search query in a specific column. The columnNames to be searched are "grid", "district", "beat", "ucrNcicCode", "year" and "month". 
+	//The file will be a single csv file with the given file name.
+	//calling down to City layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadFilteredDataForCity(java.lang.String, java.lang.String, java.lang.String, java.lang.String)
+	 */
+	public void callDownloadFilteredDataForCity( String cityName, String columnName, String queryValue, String outputFileName ) {
+		City myCity = citiesRegister.get(cityName);
+		if (columnName.equals("district"))
+			myCity.saveDetailsForCrimesInDistrict(Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("beat"))
+			myCity.saveDetailsForCrimesInBeat(queryValue, outputFileName );
+		else if (columnName.equals("grid"))
+			myCity.saveDetailsForCrimesInGrid(Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("year"))
+			myCity.saveDetailsForCrimesInYear(Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("month"))
+			myCity.saveDetailsForCrimesInMonth(Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("ucrNcicCode"))
+			myCity.saveDetailsForCrimesForCategory(Integer.parseInt(queryValue), outputFileName );
+		else 
+			System.out.println("Invalid query. Check your input variables again!");
+	}
+
+	//Method to download data of crimes in a certain year (indicated by year), filtered based on a search query in a specific column. The columnNames to be searched are "city", "ucrNcicCode" and "month". 
+	//The file will be a single csv file with the given file name.
+	//calling down to Year layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadFilteredDataForYear(int, java.lang.String, java.lang.String, java.lang.String)
+	 */
+	public void callDownloadFilteredDataForYear( int year, String columnName, String queryValue, String outputFileName ) {
+		Year myYear = yearsRegister.get(year);
+		if (columnName.equals("city"))
+			myYear.saveDetailsForCrimesInCity( queryValue, outputFileName );
+		else if (columnName.equals("month"))
+			myYear.saveDetailsForCrimesInMonth( Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("ucrNcicCode"))
+			myYear.saveDetailsForCrimesForCategory( Integer.parseInt(queryValue), outputFileName );
+		else 
+			System.out.println("Invalid query. Check your input variables again!");
+	}
+
+	//Method to download data of crimes in a certain month (indicated by month), filtered based on a search query in a specific column. The columnNames to be searched are "city", "ucrNcicCode" and "year". 
+	//The file will be a single csv file with the given file name.
+	//calling down to Month layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadFilteredDataForMonth(int, java.lang.String, java.lang.String, java.lang.String)
+	 */
+	public void callDownloadFilteredDataForMonth( int month, String columnName, String queryValue, String outputFileName ) {
+		Month myMonth = monthsRegister.get(month);
+		if (columnName.equals("city"))
+			myMonth.saveDetailsForCrimesInCity( queryValue, outputFileName );
+		else if (columnName.equals("year"))
+			myMonth.saveDetailsForCrimesInYear( Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("ucrNcicCode"))
+			myMonth.saveDetailsForCrimesForCategory( Integer.parseInt(queryValue), outputFileName );
+		else 
+			System.out.println("Invalid query. Check your input variables again!");
+	}
+
+	//Method to download data of crimes of a certain crime category (indicated by ucrNcicCode), filtered based on a search query in a specific column. The columnNames to be searched are "city", "year" and "month". 
+	// The file will be a single csv file with the given file name.
+	//calling down to CrimeCategory layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#callDownloadFilteredDataForCrimeCategory(int, java.lang.String, java.lang.String, java.lang.String)
+	 */
+	public void callDownloadFilteredDataForCrimeCategory( int ucrNcicCode, String columnName, String queryValue, String outputFileName ) {
+		CrimeCategory myCategory = categoriesRegister.get(ucrNcicCode);
+		if (columnName.equals("city"))
+			myCategory.saveDetailsForCrimesInCity( queryValue, outputFileName );
+		else if (columnName.equals("year"))
+			myCategory.saveDetailsForCrimesInYear( Integer.parseInt(queryValue), outputFileName );
+		else if (columnName.equals("month"))
+			myCategory.saveDetailsForCrimesInMonth( Integer.parseInt(queryValue), outputFileName );
+		else 
+			System.out.println("Invalid query. Check your input variables again!");
+	}
+
+
+	// STATISTICS:
+	//Method to get the total count of crimes in the database
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getTotalCountCrimes()
+	 */
+	public String getTotalCountCrimes( ) {
+		return "Total count of crimes: " + String.valueOf(myMainDatabase.getCrimesRegister().size()) + "\n";
+	}
+
+	//Method to get the number of cities covered in the database
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getNumberCities()
+	 */
+	public String getNumberCities( ) {
+		return "Number of cities covered: " + String.valueOf(citiesRegister.size()) + "\n";
+	}
+
+	//Method to get the number of years covered in the database
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getNumberYears()
+	 */
+	public String getNumberYears( ) {
+		return "Number of years covered: " + String.valueOf(yearsRegister.size()) + "\n";
+	}
+
+	//Method to get the number of months covered in the database
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getNumberMonths()
+	 */
+	public String getNumberMonths( ) {
+		return "Number of months covered: " + String.valueOf(monthsRegister.size()) + "\n";
+	}
+
+	//Method to get the number of crime categories covered in the database
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getNumberCategories()
+	 */
+	public String getNumberCategories( ) {
+		return "Number of crime categories covered: " + String.valueOf(categoriesRegister.size()) + "\n";
+	}
+
+	//Method to get the names of the cities covered in the database, in a String
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getNamesCities()
+	 */
+	public String getNamesCities( ) {
+		String cities = "The cities covered in the database are:\n";
+		for (String city: citiesRegister.keySet()){
+			cities = cities + city + "\n";  
+		} 
+		return cities;
+	}
+
+	//Method to get the years covered in the database, in a String
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getYears()
+	 */
+	public String getYears( ) {
+		String years = "The years covered in the database are:\n";
+		for (Integer year: yearsRegister.keySet()){
+			years = years + year + "\n";
+		} 
+		return years;
+	}
+
+	//Method to get summary and statistics for the entire database
+	//calling down to myMainDatabase layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getOverallSummaryAndStatistics()
+	 */
+	public String getOverallSummaryAndStatistics( ) {
+
+		// Build up the summary string
+		String summary = "Database Summary:\n";
+
+		// Include the counts for cities, years and crime categories covered
+		summary = summary + getNumberCities();
+		summary = summary + getNumberYears();
+		summary = summary + getNumberMonths();
+		summary = summary + getNumberCategories();
+
+		// Also list the names of the cities and years covered in the database
+		summary = summary + getNamesCities();
+		summary = summary + getYears();
+
+		// Now call down for rest of statistics to myMainDatabase layer
+		summary = summary + myMainDatabase.getCrimesSummary();
+		return summary;
+	}
+
+
+	//Method to get a specific statistic per city, based on one of the two methods: "mean" or median" of crimes per city; calling down to City layer 
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getSpecificStatisticPerCity(java.lang.String)
+	 */
+	public String getSpecificStatisticPerCity( String statisticsMethod ) {
+		if (statisticsMethod.equals("mean")) {
+			return ("Average crimes per city: " + myMainDatabase.getAveragePerCity().toString());
+		}
+		else if (statisticsMethod.equals("median")) {
+			return ("Median crimes per city: " + myMainDatabase.getMedianPerCity().toString());
+		}
+		else 
+			return "Entered statistics method not found. Supported methods are 'mean' and 'median'.";
+	}
+
+	//Method to get a specific statistic per year, based on one of the two methods: "mean" or median" of crimes per year; calling down to Year layer 
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getSpecificStatisticPerYear(java.lang.String)
+	 */
+	public String getSpecificStatisticPerYear( String statisticsMethod ) {
+		if (statisticsMethod.equals("mean")) {
+			return ("Average crimes per year: " + myMainDatabase.getAveragePerYear().toString());
+		}
+		else if (statisticsMethod.equals("median")) {
+			return ("Median crimes per year: " + myMainDatabase.getMedianPerYear().toString());
+		}
+		else 
+			return "Entered statistics method not found. Supported methods are 'mean' and 'median'.";
+	}
+
+	//Method to get a specific statistic per month, based on one of the two methods: "mean" or median" of crimes per month; calling down to Month layer 
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getSpecificStatisticPerMonth(java.lang.String)
+	 */
+	public String getSpecificStatisticPerMonth( String statisticsMethod ) {
+		if (statisticsMethod.equals("mean")) {
+			return ("Average crimes per month: " + myMainDatabase.getAveragePerMonth().toString());
+		}
+		else if (statisticsMethod.equals("median")) {
+			return ("Median crimes per month: " + myMainDatabase.getMedianPerMonth().toString());
+		}
+		else 
+			return "Entered statistics method not found. Supported methods are 'mean' and 'median'.";
+	}
+
+	//Method to get a specific statistic per crime category, based on one of the two methods: "mean" or median" of crimes per category, calling down to CrimeCategory layer 
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getSpecificStatisticPerCrimeCategory(java.lang.String)
+	 */
+	public String getSpecificStatisticPerCrimeCategory( String statisticsMethod ) {
+		if (statisticsMethod.equals("mean")) {
+			return ("Average crimes per crime category: " + myMainDatabase.getAveragePerCategory().toString());
+		}
+		else if (statisticsMethod.equals("median")) {
+			return ("Median crimes per crime category: " + myMainDatabase.getMedianPerCategory().toString());
+		}
+		else 
+			return "Entered statistics method not found. Supported methods are 'mean' and 'median'.";
+	}
+
+
+	//method to get all statistics for a given city, calling down to City layer 
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getAllStatisticsForCity(java.lang.String)
+	 */
+	public String getAllStatisticsForCity( String cityName ) {
+		City myCity = citiesRegister.get(cityName);
+		return myCity.getDetailedCrimesSummary();
+	}
+
+	//method to get all statistics for a given year, calling down to Year layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getAllStatisticsForYear(int)
+	 */
+	public String getAllStatisticsForYear( int year ) {
+		Year myYear = yearsRegister.get(year);
+		return myYear.getCrimesSummary();
+	}
+
+	//method to get all statistics for a given month, calling down to Month layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getAllStatisticsForMonth(int)
+	 */
+	public String getAllStatisticsForMonth( int month ) {
+		Month myMonth = monthsRegister.get(month);
+		return myMonth.getCrimesSummary();
+	}
+
+	//method to get all statistics for a given crime category, calling down to CrimeCategory layer
+	/* (non-Javadoc)
+	 * @see camelinactionConsumer.DatabaseQueryEngine#getAllStatisticsForCrimeCategory(int)
+	 */
+	public String getAllStatisticsForCrimeCategory( int ucrNcicCode ) {
+		CrimeCategory myCategory = categoriesRegister.get(ucrNcicCode);
+		return myCategory.getCrimesSummary();
+	}
+
+}

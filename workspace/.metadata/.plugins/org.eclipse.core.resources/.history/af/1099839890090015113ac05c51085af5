@@ -1,0 +1,76 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package camelinaction;
+
+import org.apache.camel.CamelContext;
+import org.apache.camel.RecipientList;
+import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.impl.DefaultCamelContext;
+
+import javax.jms.ConnectionFactory;
+
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.camel.component.jms.JmsComponent;
+
+public class Consumer {
+
+	//Using a bean and make it behave as a recipient list to send messages to dynamically created queues, based on their city name, year, month or crime category code; also send each crime to the main database and create a csv file per crime
+	@RecipientList
+	public String routeTo(String body) {
+		String[] parts = body.split(","); // extract various substrings from data
+		String id = parts[0].replaceAll("\\s+","");
+		String city = parts[1].replaceAll("\\s+","");
+		String dateTime = parts[2];
+		String[] dateTimeParts = dateTime.split("/");
+		String yearShort = dateTimeParts[2].split("\\s+")[0].replaceAll("\\s+","");
+		String year = "20" + yearShort; // add 20 to make it 2006, 2007 etc. instead of 06, 07 - we assume the database only contains data after 2000
+		String month = dateTimeParts[1].replaceAll("\\s+","");
+		String crimeCategory = parts[8].replaceAll("\\s+","");
+		String mainDatabaseQueue = "jms:queue:MPCS_51050_final_main_database"; // add each crime to main database queue
+		String furtherQueueList = "jms:queue:MPCS_51050_final_city_" + city + ",jms:queue:MPCS_51050_final_year_" + year  + ",jms:queue:MPCS_51050_final_month_" + month  + ",jms:queue:MPCS_51050_final_crime_category_" + crimeCategory;
+		String file = "file:data/outbox/?fileName=crime_" + id + ".csv"; // also add a csv file to the data outbox folder for each crime
+		return (mainDatabaseQueue + "," + furtherQueueList + "," + file);
+	}
+
+
+	public static void main(String args[]) throws Exception {
+		// create CamelContext
+		CamelContext context = new DefaultCamelContext();
+
+		// connect to ActiveMQ JMS broker listening on localhost on port 61616
+		ConnectionFactory connectionFactory = 
+				new ActiveMQConnectionFactory("tcp://localhost:61616");
+		context.addComponent("jms",
+				JmsComponent.jmsComponentAutoAcknowledge(connectionFactory));
+
+		// add our route to the CamelContext
+		context.addRoutes(new RouteBuilder() {
+			public void configure() {
+				from("jms:queue:MPCS_51050_final_data_channel")
+				.log("RECEIVED:  jms queue: ${body} from file: ${header.CamelFileNameOnly}")
+				.bean(Consumer.class, "routeTo"); // send each crime to the main database, as well as to its city, year, month, crime category queue through a custom bean using a recipient list, save a csv file per crime
+			}
+		});
+
+		// start the route and let it do its work
+		context.start();
+		Thread.sleep(50000);
+
+		// stop the CamelContext
+		context.stop();
+	}
+}

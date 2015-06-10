@@ -1,0 +1,118 @@
+package camelinactionConsumer;
+
+public interface DatabaseQueryEngine {
+
+	// STARTING SYSTEM:
+	// NOTE: only call this once
+	// Method to initialize the system
+	void initializeDatabaseEngine() throws Exception;
+
+	//Helper method to add a new crime to the DatabaseQueryEngine
+	// creates crime object as well as cities, years, months and crime category objects as needed
+	void addCrime(Crime newCrime);
+
+	// Method to synchronize the system with the data in ActiveMQ
+	//Ensures we create the respective classes for these databases to do search and statistics operations
+	void synchronizeSystem() throws Exception;
+
+	// SEARCHING INDIVIDUAL ENTRIES:
+	// Method to get the details for a specific crime, given its ID (start counting at 1)
+	String getDetailsForCrimeID(int crimeID);
+
+	// DOWNLOADING:
+	//Method to download all crime data in the database, in a single csv file with the given file name
+	//calling down to myMainDatabase layer
+	void callDownloadAllData(String outputFileName);
+
+	//Method to download data of all crimes in a certain city, given its name. The file will be a single csv file with the given file name.
+	//calling down to City layer
+	void callDownloadAllDataForCity(String name, String outputFileName);
+
+	//Method to download data of all crimes in a certain year. The file will be a single csv file with the given file name.
+	//calling down to Year layer
+	void callDownloadAllDataForYear(int year, String outputFileName);
+
+	//Method to download data of all crimes in a certain month. The file will be a single csv file with the given file name.
+	//calling down to Month layer
+	void callDownloadAllDataForMonth(int month, String outputFileName);
+
+	//Method to download data of all crimes in a certain crime category, given its ucrNcicCode. The file will be a single csv file with the given file name.
+	//calling down to CrimeCategory layer
+	void callDownloadAllDataForCrimeCategory(int ucrNcicCode,
+			String outputFileName);
+
+	//Method to download data of crimes in a certain city (indicated by cityName), filtered based on a search query in a specific column. The columnNames to be searched are "grid", "district", "beat", "ucrNcicCode", "year" and "month". 
+	//The file will be a single csv file with the given file name.
+	//calling down to City layer
+	void callDownloadFilteredDataForCity(String cityName, String columnName,
+			String queryValue, String outputFileName);
+
+	//Method to download data of crimes in a certain year (indicated by year), filtered based on a search query in a specific column. The columnNames to be searched are "city", "ucrNcicCode" and "month". 
+	//The file will be a single csv file with the given file name.
+	//calling down to Year layer
+	void callDownloadFilteredDataForYear(int year, String columnName,
+			String queryValue, String outputFileName);
+
+	//Method to download data of crimes in a certain month (indicated by month), filtered based on a search query in a specific column. The columnNames to be searched are "city", "ucrNcicCode" and "year". 
+	//The file will be a single csv file with the given file name.
+	//calling down to Month layer
+	void callDownloadFilteredDataForMonth(int month, String columnName,
+			String queryValue, String outputFileName);
+
+	//Method to download data of crimes of a certain crime category (indicated by ucrNcicCode), filtered based on a search query in a specific column. The columnNames to be searched are "city", "year" and "month". 
+	// The file will be a single csv file with the given file name.
+	//calling down to CrimeCategory layer
+	void callDownloadFilteredDataForCrimeCategory(int ucrNcicCode,
+			String columnName, String queryValue, String outputFileName);
+
+	// STATISTICS:
+	//Method to get the total count of crimes in the database
+	String getTotalCountCrimes();
+
+	//Method to get the number of cities covered in the database
+	String getNumberCities();
+
+	//Method to get the number of years covered in the database
+	String getNumberYears();
+
+	//Method to get the number of months covered in the database
+	String getNumberMonths();
+
+	//Method to get the number of crime categories covered in the database
+	String getNumberCategories();
+
+	//Method to get the names of the cities covered in the database, in a String
+	String getNamesCities();
+
+	//Method to get the years covered in the database, in a String
+	String getYears();
+
+	//Method to get summary and statistics for the entire database
+	//calling down to myMainDatabase layer
+	String getOverallSummaryAndStatistics();
+
+	//Method to get a specific statistic per city, based on one of the two methods: "mean" or median" of crimes per city; calling down to City layer 
+	String getSpecificStatisticPerCity(String statisticsMethod);
+
+	//Method to get a specific statistic per year, based on one of the two methods: "mean" or median" of crimes per year; calling down to Year layer 
+	String getSpecificStatisticPerYear(String statisticsMethod);
+
+	//Method to get a specific statistic per month, based on one of the two methods: "mean" or median" of crimes per month; calling down to Month layer 
+	String getSpecificStatisticPerMonth(String statisticsMethod);
+
+	//Method to get a specific statistic per crime category, based on one of the two methods: "mean" or median" of crimes per category, calling down to CrimeCategory layer 
+	String getSpecificStatisticPerCrimeCategory(String statisticsMethod);
+
+	//method to get all statistics for a given city, calling down to City layer 
+	String getAllStatisticsForCity(String cityName);
+
+	//method to get all statistics for a given year, calling down to Year layer
+	String getAllStatisticsForYear(int year);
+
+	//method to get all statistics for a given month, calling down to Month layer
+	String getAllStatisticsForMonth(int month);
+
+	//method to get all statistics for a given crime category, calling down to CrimeCategory layer
+	String getAllStatisticsForCrimeCategory(int ucrNcicCode);
+
+}

@@ -1,0 +1,22 @@
+package camelinactionConsumer;
+
+
+class DatabaseTest {
+	public static void main(String[] args) throws Exception {
+		
+		DatabaseInterface.initializeSystem(); 
+		
+		/*
+		try {
+			DatabaseInterface.synchronizeAndStartSystem();	
+    	    Thread.sleep(3000); //pause for another 3 seconds before continuing
+    	} catch(InterruptedException ex) {
+    	    Thread.currentThread().interrupt();
+    	}
+		
+		DatabaseInterface.printOverallSummaryAndStatistics();
+		DatabaseInterface.printAllStatisticsForCity("Chicago");
+		DatabaseInterface.printAllStatisticsForYear(2006);
+		DatabaseInterface.printDetailsCrimeByID(199); */
+	}
+}

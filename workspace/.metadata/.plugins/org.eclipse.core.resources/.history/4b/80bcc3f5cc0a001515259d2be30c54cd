@@ -1,0 +1,5 @@
+package camelinactionConsumer;
+
+public class DBCommandLineTool {
+
+}

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename compilation unit &apos;camelinaction.FileCopierWithCamel.java&apos; to &apos;Producer.java&apos;&#x0A;- Original project: &apos;MPCS-Lab5-Producer&apos;&#x0A;- Original element: &apos;camelinaction.FileCopierWithCamel.java&apos;&#x0A;- Renamed element: &apos;camelinaction.Producer.java&apos;" description="Rename compilation unit &apos;FileCopierWithCamel.java&apos;" flags="2" id="org.eclipse.jdt.ui.rename.compilationunit" input="/src\/main\/java&lt;camelinaction{FileCopierWithCamel.java" name="Producer.java" references="false" stamp="1431479274229" version="1.0"/>
+</session>

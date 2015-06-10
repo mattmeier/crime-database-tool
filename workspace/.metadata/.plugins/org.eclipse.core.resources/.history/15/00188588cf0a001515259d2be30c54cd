@@ -1,0 +1,17 @@
+package camelinactionConsumer;
+
+public class DBCommandLineTool {
+public static void main(String[] args) throws Exception {
+		
+		DatabaseInterface myDatabaseInterface = DatabaseInterfaceImpl.getInstance();
+		
+		if (args.length == 0) {
+			System.out.println("Welcome to the crime database. Please find below some instructions to use the system through the command line:\n")
+			System.out.println("TO DO");
+		}
+		else {
+			myDatabaseInterface.initializeSystem();
+		}
+		
+	}
+}

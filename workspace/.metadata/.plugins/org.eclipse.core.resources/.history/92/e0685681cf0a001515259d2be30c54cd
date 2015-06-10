@@ -1,0 +1,16 @@
+package camelinactionConsumer;
+
+
+class DatabaseTest {
+	public static void main(String[] args) throws Exception {
+		
+		DatabaseInterface myDatabaseInterface = DatabaseInterfaceImpl.getInstance();
+		
+		//Only do this the first time you run the database system ever! After initialization, always use synchronizeAndStartSystem.
+		//myDatabaseInterface.initializeSystem();
+		
+		myDatabaseInterface.synchronizeAndStartSystem();
+		
+		
+	}
+}

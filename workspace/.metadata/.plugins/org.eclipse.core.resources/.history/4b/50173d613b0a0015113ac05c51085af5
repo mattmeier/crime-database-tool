@@ -1,0 +1,20 @@
+package camelinactionConsumer;
+
+
+class DatabaseTest {
+	public static void main(String[] args) throws Exception {
+		
+		//DatabaseInterface.initializeSystem(); 
+		
+		try {
+			DatabaseInterface.synchronizeAndStartSystem();	
+    	    Thread.sleep(3000); //pause for another 2 seconds before continuing
+    	} catch(InterruptedException ex) {
+    	    Thread.currentThread().interrupt();
+    	}
+		
+		DatabaseInterface.printOverallSummaryAndStatistics();
+		
+
+	}
+}

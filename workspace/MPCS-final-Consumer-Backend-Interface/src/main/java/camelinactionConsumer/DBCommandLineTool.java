@@ -1,0 +1,108 @@
+package camelinactionConsumer;
+
+public class DBCommandLineTool {
+public static void main(String[] args) throws Exception {
+		
+		DatabaseInterface myDatabaseInterface = DatabaseInterfaceImpl.getInstance();
+
+		StringBuilder help = new StringBuilder("To view these help instructions at any later point, add -h.\nThe argument options for this command line tool are as follows:\n");
+		help.append("- initializeSystem: method to initialize the database system the first time it is ever used. This is necessary to make sure the data gets loaded into the Camel ActiveMQ system. NOTE: only call this once ever, after having done so the system synchronizes and automatically.\n");
+		help.append("- printDetailsCrimeByID <ID>: Method to print out details of a crime, given its ID <ID>.\n");
+		help.append("- downloadAllData <outputFileName>: Method to download all crime data in the database, in a csv file with the given file name <outputFileName>.\n");
+    	help.append("- downloadAllDataForCity <city> <outputFileName>: Method to download data of all crimes in a certain city, given its name <city>. The file will be a single csv file with the given file name <outputFileName>.\n");
+		help.append("- downloadAllDataForYear <year> <outputFileName>: Method to download data of all crimes in a certain year, given its year <year> (format is 4 digits, e.g. 2006). The file will be a single csv file with the given file name <outputFileName>.\n");
+		help.append("- downloadAllDataForMonth <month by digit> <outputFileName>: Method to download data of all crimes in a certain month, given its month <month by digit> (e.g. 1 for January, 2 for February etc.). The file will be a single csv file with the given file name <outputFileName>.\n");
+		help.append("- downloadAllDataForCrimeCategory <crimeCode> <outputFileName>: Method to download data of all crimes in a certain crime category, given its crime category code <crimeCode> (e.g. 7000). The file will be a single csv file with the given file name <outputFileName>.\n");
+		help.append("- downloadFilteredDataForCity <cityName> <columnName> <queryValue> <outputFileName>: Method to download data of crimes in a certain city (indicated by <cityName>), filtered based on a search query <queryValue> in a specific column <columnName>. The columnNames to be searched are 'grid', 'district', 'beat', 'ucrNcicCode', 'year' and 'month'. The file will be a single csv file with the given file name. <outputFileName>.\n");
+    	help.append("- downloadFilteredDataForYear <year> <columnName> <queryValue> <outputFileName>: Method to download data of crimes in a certain year (indicated by <year>), filtered based on a search query <queryValue> in a specific column <columnName>. The columnNames to be searched are 'city', 'grid', 'district', 'beat', 'ucrNcicCode' and 'month'. The file will be a single csv file with the given file name. <outputFileName>.\n");
+    	help.append("- downloadFilteredDataForMonth <month> <columnName> <queryValue> <outputFileName>: Method to download data of crimes in a certain month (indicated by <month>, which is indicated by a number between 1 and 12), filtered based on a search query <queryValue> in a specific column <columnName>. The columnNames to be searched are 'city', 'grid', 'district', 'beat', 'ucrNcicCode' and 'year'. The file will be a single csv file with the given file name. <outputFileName>.\n");
+    	help.append("- downloadFilteredDataForMonth <crimeCode> <columnName> <queryValue> <outputFileName>: Method to download data of crimes in a certain crime category (indicated by <crimeCode>, such as 7000), filtered based on a search query <queryValue> in a specific column <columnName>. The columnNames to be searched are 'city', 'grid', 'district', 'beat', 'year' and 'month'. The file will be a single csv file with the given file name. <outputFileName>.\n");
+    	help.append("- printTotalCrimeCount: Method to print out the total count of crimes in the entire database system.\n");
+    	help.append("- printSpecificStatisticPerCity <statisticMethod>: Method to print a specific statistic per city, based on one of the two methods <statisticMethod>: 'mean' or 'median' of crimes per city.\n");
+ 		help.append("- printSpecificStatisticPerYear <statisticMethod>: Method to print a specific statistic per year, based on one of the two methods <statisticMethod>: 'mean' or 'median' of crimes per year.\n");
+ 		help.append("- printSpecificStatisticPerMonth <statisticMethod>: Method to print a specific statistic per month, based on one of the two methods <statisticMethod>: 'mean' or 'median' of crimes per month.\n");
+		help.append("- printSpecificStatisticPerCrimeCategory <statisticMethod>: Method to print a specific statistic per crimeCategory, based on one of the two methods <statisticMethod>: 'mean' or 'median' of crimes per crime category.\n");
+		help.append("- printOverallSummaryAndStatistics: Method to print summary and statistics for the entire database.\n");
+		help.append("- printAllStatisticsForCity <cityName>: Method to print all statistics for a given city <cityName>.\n");
+		help.append("- printAllStatisticsForYear <year>: Method to print all statistics for a given year <year>.\n");
+		help.append("- printAllStatisticsForMonth <month>: Method to print all statistics for a given month <month> (number indicating month, e.g. 1 for January, 2 for February etc.).\n");
+		help.append("- printAllStatisticsForCrimeCategory <crimeCode>: Method to print all statistics for a given crimecategory with the code <crimeCode> (e.g. 7000).\n");
+		
+		if (args.length == 0) {
+			System.out.println("Welcome to the crime database. Please find below some instructions to use the system through the command line:\n");
+			System.out.println(help);
+		}
+		else {
+			if (args.length == 1) {
+				if (args[0].equals("-h"))
+					System.out.println(help);
+				else if (args[0].equals("initializeSystem"))
+					myDatabaseInterface.initializeSystem();
+				else {
+					myDatabaseInterface.synchronizeAndStartSystem();
+					if (args[0].equals("printTotalCrimeCount"))
+						myDatabaseInterface.printTotalCrimeCount();
+					if (args[0].equals("printOverallSummaryAndStatistics"))
+						myDatabaseInterface.printOverallSummaryAndStatistics();
+					else 
+						System.out.println("Invalid argument passed in. Please check your input again or enter -h for help.");
+				}
+			}
+			else if (args.length == 2) {
+				myDatabaseInterface.synchronizeAndStartSystem();
+				if (args[0].equals("downloadAllData"))
+					myDatabaseInterface.downloadAllData(args[1]);
+				else if (args[0].equals("printDetailsCrimeByID"))
+					myDatabaseInterface.printDetailsCrimeByID(Integer.parseInt(args[1]));
+				else if (args[0].equals("printSpecificStatisticPerCity"))
+					myDatabaseInterface.printSpecificStatisticPerCity(args[1]);
+				else if (args[0].equals("printSpecificStatisticPerYear"))
+					myDatabaseInterface.printSpecificStatisticPerYear(args[1]);
+				else if (args[0].equals("printSpecificStatisticPerMonth"))
+					myDatabaseInterface.printSpecificStatisticPerMonth(args[1]);
+				else if (args[0].equals("printSpecificStatisticPerCrimeCategory"))
+					myDatabaseInterface.printSpecificStatisticPerCrimeCategory(args[1]);
+				else if (args[0].equals("printAllStatisticsForCity"))
+					myDatabaseInterface.printAllStatisticsForCity(args[1]);
+				else if (args[0].equals("printAllStatisticsForYear"))
+					myDatabaseInterface.printAllStatisticsForYear(Integer.parseInt(args[1]));
+				else if (args[0].equals("printAllStatisticsForMonth"))
+					myDatabaseInterface.printAllStatisticsForMonth(Integer.parseInt(args[1]));
+				else if (args[0].equals("printAllStatisticsForCrimeCategory"))
+					myDatabaseInterface.printAllStatisticsForCrimeCategory(Integer.parseInt(args[1]));
+				else 
+					System.out.println("Invalid argument passed in. Please check your input again or enter -h for help.");
+			}
+			else if (args.length == 3) {
+				myDatabaseInterface.synchronizeAndStartSystem();
+				if (args[0].equals("downloadAllDataForCity"))
+					myDatabaseInterface.downloadAllDataForCity(args[1], args[2]);
+				else if (args[0].equals("downloadAllDataForYear"))
+					myDatabaseInterface.downloadAllDataForYear(Integer.parseInt(args[1]), args[2]);
+				else if (args[0].equals("downloadAllDataForMonth"))
+					myDatabaseInterface.downloadAllDataForMonth(Integer.parseInt(args[1]), args[2]);
+				else if (args[0].equals("downloadAllDataForCrimeCategory"))
+					myDatabaseInterface.downloadAllDataForCrimeCategory(Integer.parseInt(args[1]), args[2]);
+				else 
+					System.out.println("Invalid argument passed in. Please check your input again or enter -h for help.");
+			}
+			else if (args.length == 5) {
+				myDatabaseInterface.synchronizeAndStartSystem();
+				if (args[0].equals("downloadFilteredDataForCity"))
+					myDatabaseInterface.downloadFilteredDataForCity(args[1], args[2], args[3], args[4]);
+				else if (args[0].equals("downloadFilteredDataForYear"))
+					myDatabaseInterface.downloadFilteredDataForYear(Integer.parseInt(args[1]), args[2], args[3], args[4]);
+				else if (args[0].equals("downloadFilteredDataForMonth"))
+					myDatabaseInterface.downloadFilteredDataForMonth(Integer.parseInt(args[1]), args[2], args[3], args[4]);
+				else if (args[0].equals("downloadFilteredDataForCrimeCategory"))
+					myDatabaseInterface.downloadFilteredDataForCrimeCategory(Integer.parseInt(args[1]), args[2], args[3], args[4]);
+				else 
+					System.out.println("Invalid argument passed in. Please check your input again or enter -h for help.");
+			}
+			else 
+				System.out.println("Invalid number of arguments passed in. Please check your input again or enter -h for help.");
+
+		}
+		
+	}
+}

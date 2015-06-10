@@ -1,0 +1,561 @@
+package camelinaction;
+import java.util.*;
+import java.util.Map.Entry;
+import java.io.FileWriter;
+import java.io.IOException;
+
+
+public abstract class DatabaseCategory {
+
+	protected static Map <Integer, Crime> crimesRegister; // a hashmap with all crimes in this database, with their id as key
+	protected static String databaseType;
+	protected static String name;
+
+
+	// METHODS:
+
+	//Method to get the name of the city
+	public final String getName( ) {
+		return name;
+	}
+
+	//Method to get the register of all crimes in this database
+	public final Map <Integer, Crime> getCrimesRegister( ) {
+		return crimesRegister;
+	}
+
+	// This method is overridden by City, Year, Month and CrimeCategory subclasses
+	protected abstract String GetDatabaseType( );
+
+	//Method to add a new crime to the city
+	public final void addCrime( Crime newCrime ) {
+		crimesRegister.put(newCrime.getID(), newCrime);
+	}
+
+	// Method to get the details for a specific crime, given its ID (start counting at 1), formatted in a way to save it as a line in a csv file
+	public String getCsvLineForCrimeID( int crimeID ) {
+		//Map <Integer, Crime> crimesRegister = getCrimesRegister();
+		if (!crimesRegister.containsKey(crimeID)) {
+			System.out.println("Crime ID does not exist.");
+			return "";
+		}
+		Crime crime = crimesRegister.get(crimeID);
+		return crime.getCsvLine();
+	} 
+
+	// Method to retrieve all values of a given int column
+	public final ArrayList<Integer> retrieveAllValuesFromIntColumn(String columnName) {
+		int n = crimesRegister.size();
+		ArrayList<Integer> valueList = new ArrayList<Integer>();
+		ArrayList<Crime> allCrimes  = new ArrayList<Crime>( crimesRegister.values() );
+		// TO DO: check indices
+		// loop through the allCrimes list and retrieve all values for the given column
+		for (int i = 0; i<=n-1; i++) {
+			valueList.add((allCrimes.get(i)).getIntAttribute(columnName));
+		}
+		return valueList;
+	} 
+
+	// Method to retrieve all values of a given String column
+	public final ArrayList<String> retrieveAllValuesFromStringColumn(String columnName) {
+		int n = crimesRegister.size();
+		ArrayList<String> valueList = new ArrayList<String>();
+		ArrayList<Crime> allCrimes  = new ArrayList<Crime>( crimesRegister.values() );
+		// TO DO: check indices
+		// loop through the allCrimes list and retrieve all values for the given column
+		for (int i = 0; i<=n-1; i++) {
+			valueList.add((allCrimes.get(i)).getStringAttribute(columnName));
+		}
+		return valueList;
+	}  
+
+	// Method to search the database for crime ids matching an int search value in a given column
+	public final Vector<Integer> searchCrimesForInt(String column, int searchValue) {
+		Vector<Integer> idVector = new Vector<Integer> ();
+		int n = crimesRegister.size();
+		List<Crime> allCrimes  = new ArrayList<Crime>( crimesRegister.values() );
+		// TO DO: check indices
+		// loop through the allCrimes list and retrieve all values for the given column, then see, whether there is a match with the searchValue
+		for (int i = 0; i<=n-1; i++) {
+			int value = (allCrimes.get(i)).getIntAttribute(column);
+			if (value == searchValue) 
+				idVector.add((allCrimes.get(i)).getID());
+		};
+		return idVector;
+	} 
+
+	// Method to search the database for crime ids matching a String search query in a given column
+	public final Vector<Integer> searchCrimesForString(String column, String searchQuery) {
+		Vector<Integer> idVector = new Vector<Integer> ();
+		int n = crimesRegister.size();
+		List<Crime> allCrimes  = new ArrayList<Crime>( crimesRegister.values() );
+		// TO DO: check indices
+		// loop through the allCrimes list and retrieve all values for the given column, then see, whether there is a match with the searchValue
+		for (int i = 0; i<=n-1; i++) {
+			String string = (allCrimes.get(i)).getStringAttribute(column);
+			if (string.equals(searchQuery)) 
+				idVector.add((allCrimes.get(i)).getID());
+		};
+		return idVector;
+	} 
+
+	// abstract method to get the IDs for all crimes in a certain city
+	abstract Vector<Integer> getCrimeIDsInCity(String cityName);
+
+	// abstract method to get the IDs for all crimes of a certain category, given by ucrNcicCodeValue
+	abstract Vector<Integer> getCrimeIDsForCategory(int ucrNcicCodeValue);
+
+	// abstract method to get the IDs for all crimes of a certain year
+	abstract Vector<Integer> getCrimeIDsForYear(int year);
+
+	// abstract method to get the IDs for all crimes of a certain month (in any year)
+	abstract Vector<Integer> getCrimeIDsForMonth(int month);
+
+	// Helper method to save the details for crimes given in an array list to a csv file
+	public final void saveCrimesArrayListToCsv( ArrayList<Crime> crimesList, String fileName ) {
+		int n = crimesList.size();
+		try {
+
+			FileWriter writer = new FileWriter(fileName);
+			// TO DO: check indices
+			// loop through the crimesList array list and get csv line for each file, then save to file
+			for (int i = 0; i<=n-1; i++) {
+				Crime crime = crimesList.get(i);
+				String csvLine = crime.getCsvLine();
+				
+				// write line
+				writer.append(csvLine);
+				writer.append('\n');
+			}
+			writer.flush();
+			writer.close();
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	// Helper method to save the details for crimes of which a vector of their IDs is given to a csv file
+	public final void saveCrimesIdVectorToCsv( Vector<Integer> idVector, String fileName ) {
+		int n = idVector.size();
+
+		// TO DO: think about indices
+		try {
+
+			FileWriter writer = new FileWriter(fileName);
+			// TO DO: check indices
+			// loop through the crimesList array list and get csv line for each file, then save to file
+			for (int i = 0; i<=n-1; i++) {
+				String csvLine = getCsvLineForCrimeID(idVector.get(i));
+				
+				// write line
+				writer.append(csvLine);
+				writer.append('\n');
+			}
+			writer.flush();
+			writer.close();
+		}
+		catch(IOException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	// Method to get the details for all crimes of the city; saves these details to a csv file
+	public final void saveDetailsForAllCrimesToFile( String fileName ) {
+		ArrayList<Crime> allCrimes  = new ArrayList<Crime>( crimesRegister.values() );
+		saveCrimesArrayListToCsv( allCrimes, fileName );
+	}
+
+	// Method to get the details for all crimes in a given district; saves these details to a csv file.
+	public final void saveDetailsForCrimesInCity(String city, String fileName ) {
+		Vector<Integer> idVector = getCrimeIDsInCity(city);
+		saveCrimesIdVectorToCsv( idVector, fileName );
+	}
+
+	// Method to get the details for all crimes of a given category; saves these details to a csv file.
+	public final void saveDetailsForCrimesForCategory(int ucrNcicCodeValue, String fileName ) {
+		Vector<Integer> idVector = getCrimeIDsForCategory(ucrNcicCodeValue);
+		saveCrimesIdVectorToCsv( idVector, fileName );
+	}
+
+	// Method to get the details for all crimes in a given year; saves these details to a csv file.
+	public final void saveDetailsForCrimesInYear(int year, String fileName ) {
+		Vector<Integer> idVector = getCrimeIDsForYear(year);
+		saveCrimesIdVectorToCsv( idVector, fileName );
+	}
+
+	// Method to get the details for all crimes in a given month (in any year); saves these details to a csv.
+	public final void saveDetailsForCrimesInMonth(int month, String fileName ) {
+		Vector<Integer> idVector = getCrimeIDsForMonth(month);
+		saveCrimesIdVectorToCsv( idVector, fileName );
+	}
+
+	// Method to get the total count of crimes in this city
+	public final Integer getTotalCrimeCount() {
+		return crimesRegister.size();
+	} 
+
+	// abstract method to get the count of crimes for a given city
+	abstract Integer getCrimeCountForCity(String city);
+
+	// abstract method to get the count of crimes for a given category
+	abstract Integer getCrimeCountForCategory(int ucrNcicCodeValue);
+
+	// abstract method to get the count of crimes for a given year
+	abstract Integer getCrimeCountForYear(int year);
+
+	// abstract method get the count of crimes for a given month
+	abstract Integer getCrimeCountForMonth(int month);
+
+	// Method to get the frequency count for each unique value of an int array list passed
+	public Map<Integer, Integer> getCountPerValueIntList(ArrayList<Integer> inputIntegerList) {
+
+		Map<Integer, Integer> map = new HashMap<Integer, Integer>();
+
+		for (int temporary : inputIntegerList) {
+			Integer count = map.get(temporary);
+			if (count == null || count < 1) {
+				count = 1;
+			} else {
+				count++;
+			}
+			map.put(temporary, count);
+		}
+
+		return map;
+	}
+
+	// Method to get the frequency count for each unique value of a String array list passed
+	public Map<String, Integer> getCountPerValueStringList(ArrayList<String> inputStringList) {
+
+		Map<String, Integer> map = new HashMap<String, Integer>();
+
+		for (String temporary : inputStringList) {
+			Integer count = map.get(temporary);
+			if (count == null || count < 1) {
+				count = 1;
+			} else {
+				count++;
+			}
+			map.put(temporary, count);
+		}
+
+		return map;
+	}
+
+	SortedSet<Map.Entry<Integer,Integer>> entriesSortedByValuesForInt(Map<Integer,Integer> map) {
+		SortedSet<Map.Entry<Integer,Integer>> sortedEntries = new TreeSet<Map.Entry<Integer,Integer>>(
+			new Comparator<Map.Entry<Integer,Integer>>() {
+				@Override public int compare(Map.Entry<Integer,Integer> entry1, Map.Entry<Integer,Integer> entry2) {
+					int result = entry1.getValue().compareTo(entry2.getValue());
+					return result != 0 ? result : 1;
+				}
+			}
+			);
+		sortedEntries.addAll(map.entrySet());
+		return sortedEntries;
+	}
+
+	SortedSet<Map.Entry<String,Integer>> entriesSortedByValuesForString(Map<String,Integer> map) {
+		SortedSet<Map.Entry<String,Integer>> sortedEntries = new TreeSet<Map.Entry<String,Integer>>(
+			new Comparator<Map.Entry<String,Integer>>() {
+				@Override public int compare(Map.Entry<String,Integer> entry1, Map.Entry<String,Integer> entry2) {
+					int result = entry1.getValue().compareTo(entry2.getValue());
+					return result != 0 ? result : 1;
+				}
+			}
+			);
+		sortedEntries.addAll(map.entrySet());
+		return sortedEntries;
+	}
+
+
+	// Method to get the 3 values with the most crimes in the given int column
+	public final Integer[] getMost3IntValues(String columnName) {
+
+		Integer[] mostThree = new Integer[3];
+
+		// first, we get a list of all values in the column
+		ArrayList<Integer> valueList = retrieveAllValuesFromIntColumn(columnName);
+
+		// next, we retrieve the hashmap with the count of occurrences for each unique value of the list
+		Map<Integer, Integer> counts = getCountPerValueIntList(valueList);
+
+		SortedSet<Map.Entry<Integer,Integer>> entries = entriesSortedByValuesForInt(counts);
+		NavigableSet<Map.Entry<Integer,Integer>> ns = new TreeSet<Map.Entry<Integer,Integer>>(entries);
+		Iterator<Entry<Integer, Integer>> it = ns.descendingIterator();
+
+		// now we extract the 3 values occuring the most and add them to the array
+		for (int i = 0; i<=2; i++) {
+			// Iterating over the elements in the set
+			Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) it.next();
+			mostThree[i] = entry.getKey();
+		}
+		return mostThree;
+	} 
+
+	// Method to get the 3 values with the most crimes in the given String column
+	public final String[] getMost3StringValues(String columnName) {
+
+		String[] mostThree = new String[3];
+
+		// first, we get a list of all values in the column
+		ArrayList<String> valueList = retrieveAllValuesFromStringColumn(columnName);
+
+		// next, we retrieve the hashmap with the count of occurrences for each unique value of the list
+		Map<String, Integer> counts = getCountPerValueStringList(valueList);
+
+		SortedSet<Map.Entry<String,Integer>> entries = entriesSortedByValuesForString(counts);
+		NavigableSet<Map.Entry<String,Integer>> ns = new TreeSet<Map.Entry<String,Integer>>(entries);
+		Iterator<Entry<String, Integer>> it = ns.descendingIterator();
+
+		// now we extract the 3 values occuring the most and add them to the array
+		for (int i = 0; i<=2; i++) {
+			// Iterating over the elements in the set
+			Map.Entry<String,Integer> entry = (Map.Entry<String,Integer>) it.next();
+			mostThree[i] = entry.getKey();
+		}
+		return mostThree;
+	} 
+
+	// Method to get the 3 values with the least crimes in the given int column
+	public final Integer[] getLeast3IntValues(String columnName) {
+		
+		Integer[] leastThree = new Integer[3];
+
+		// first, we get a list of all values in the column
+		ArrayList<Integer> valueList = retrieveAllValuesFromIntColumn(columnName);
+
+		// next, we retrieve the hashmap with the count of occurrences for each unique value of the list
+		Map<Integer, Integer> counts = getCountPerValueIntList(valueList);
+
+		SortedSet<Map.Entry<Integer,Integer>> entries = entriesSortedByValuesForInt(counts);
+		Iterator<Entry<Integer, Integer>> it = entries.iterator();
+
+		// now we extract the 3 values occuring the least and add them to the array
+		for (int i = 0; i<=2; i++) {
+			// Iterating over the elements in the set
+			Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) it.next();
+			leastThree[i] = entry.getKey();
+		}
+		return leastThree;
+	} 
+
+	// Method to get the 3 values with the least crimes in the given String column
+	public final String[] getLeast3StringValues(String columnName) {
+
+		String[] leastThree = new String[3];
+
+		// first, we get a list of all values in the column
+		ArrayList<String> valueList = retrieveAllValuesFromStringColumn(columnName);
+
+		// next, we retrieve the hashmap with the count of occurrences for each unique value of the list
+		Map<String, Integer> counts = getCountPerValueStringList(valueList);
+
+		SortedSet<Map.Entry<String,Integer>> entries = entriesSortedByValuesForString(counts);
+		Iterator<Entry<String, Integer>> it = entries.iterator();
+
+		// now we extract the 3 values occuring the least and add them to the array
+		for (int i = 0; i<=2; i++) {
+			// Iterating over the elements in the set
+			Map.Entry<String,Integer> entry = (Map.Entry<String,Integer>) it.next();
+			leastThree[i] = entry.getKey();
+		}
+		return leastThree;
+	} 
+
+	// Abstract method to get the 3 cities with the most crimes
+	abstract String[] getMost3Cities();
+
+	// abstract method to get the 3 crime categories with the mostcrimes
+	abstract Integer[] getMost3Categories();
+
+	// abstract method to get the 3 years with the most crimes
+	abstract Integer[] getMost3Years(); 
+
+	// abstract methodto get the 3 months with the most crimes
+	abstract Integer[] getMost3Months();
+
+	// abstract methodto get the 3 cities with the least crimes
+	abstract String[] getLeast3Cities();
+
+	// abstract method to get the 3 crime categories with the least crimes
+	abstract Integer[] getLeast3Categories();
+
+	// abstract method to get the 3 years with the least crimes
+	abstract Integer[] getLeast3Years();
+
+	// abstract method to get the 3 months with the least crimes
+	abstract Integer[] getLeast3Months();
+
+	// Helper Method to get the mean of number of crimes per unique value in a given int column
+	public final Double getAverageCrimesPerIntValue(String columnName) {
+		// first, we count the number of unique values we have got in this column
+		// we can do so by converting our array of all values in this column and calculating the length of this set
+		ArrayList<Integer> allValues = retrieveAllValuesFromIntColumn(columnName);
+		Set<Integer> valueSet = new HashSet<Integer>(allValues);
+		int numberUniqueValues = valueSet.size();
+
+		// then we get the total number of crimes in the city and divide it by the number of districts
+		int totalNumberCrimes = getTotalCrimeCount();
+		double mean = (double) totalNumberCrimes / (double) numberUniqueValues;
+		return mean;
+	} 
+
+	// Helper Method to get the mean of number of crimes per unique value in a given String column
+	public final Double getAverageCrimesPerStringValue(String columnName) {
+		// first, we count the number of unique values we have got in this column
+		// we can do so by converting our array of all values in this column and calculating the length of this set
+		ArrayList<String> allValues = retrieveAllValuesFromStringColumn(columnName);
+		Set<String> valueSet = new HashSet<String>(allValues);
+		int numberUniqueValues = valueSet.size();
+
+		// then we get the total number of crimes in the city and divide it by the number of districts
+		int totalNumberCrimes = getTotalCrimeCount();
+		double mean = (double) totalNumberCrimes / (double) numberUniqueValues;
+		return mean;
+	} 
+
+	// abstract Method to get the average number of crimes per city
+	abstract Double getAveragePerCity();
+
+	// abstract Method to get the average number of crimes per category
+	abstract Double getAveragePerCategory();
+
+	// abstract Method to get the average number of crimes per year
+	abstract Double getAveragePerYear();
+
+	// abstract Method to get the average number of crimes per month
+	abstract Double getAveragePerMonth();
+
+	// Helper Method to get the median of number of crimes per unique value in a given int column
+	public final Double getMedianCrimesForIntValue(String columnName) {
+		// first, we get a list of all values in the column
+		ArrayList<Integer> valueList = retrieveAllValuesFromIntColumn(columnName);
+
+		// next, we retrieve the hashmap with the count of occurrences for each unique value of the list
+		Map<Integer, Integer> counts = getCountPerValueIntList(valueList);
+
+		SortedSet<Map.Entry<Integer,Integer>> entries = entriesSortedByValuesForInt(counts);
+		NavigableSet<Map.Entry<Integer,Integer>> ns = new TreeSet<Map.Entry<Integer,Integer>>(entries);
+		Iterator<Entry<Integer, Integer>> it = ns.descendingIterator();
+
+		ArrayList<Integer> sorted_counts = new ArrayList<Integer>();
+
+		// now we extract the 3 values occuring the least and add them to the array
+		for (int i = 0; i<ns.size(); i++) {
+			// Iterating over the elements in the set
+			Map.Entry<Integer,Integer> entry = (Map.Entry<Integer,Integer>) it.next();
+			sorted_counts.add(entry.getValue());
+		}	
+
+		// and now we perform the median calculation
+		int middle = sorted_counts.size()/2;
+		if (sorted_counts.size()%2 == 1) {
+			return (double) sorted_counts.get(middle);
+		} else {
+			return (double) (sorted_counts.get(middle-1) + sorted_counts.get(middle)) / 2.0;
+		}
+	} 
+
+	// Helper Method to get the median of number of crimes per unique value in a given String column
+	public final Double getMedianCrimesForStringValue(String columnName) {
+		// first, we get a list of all values in the column
+		ArrayList<String> valueList = retrieveAllValuesFromStringColumn(columnName);
+
+		// next, we retrieve the sorted hashmap with the count of occurrences for each unique value of the list
+		Map<String, Integer> countsMap = getCountPerValueStringList(valueList);
+
+		// third, we retrieve the count values from the counts map
+		ArrayList<Integer> allCounts  = new ArrayList<Integer>( countsMap.values() );
+
+		// and now we perform the median calculation
+		int middle = allCounts.size()/2;
+		if (allCounts.size()%2 == 1) {
+			return (double) allCounts.get(middle);
+		} else {
+			return (double) (allCounts.get(middle-1) + allCounts.get(middle)) / 2.0;
+		}
+	} 
+
+	// abstract Method to get the median number of crimes per city
+	abstract Double getMedianPerCity();
+
+	// abstract Method to get the median number of crimes per category
+	abstract Double getMedianPerCategory();
+
+	// abstract Method to get the median number of crimes per year
+	abstract Double getMedianPerYear();
+
+	// abstract Method to get the median number of crimes per month
+	abstract Double getMedianPerMonth();
+
+	// Template method to get some summary crime statistics for the DatabaseCategory
+	public final String getCrimesSummary() {
+		// Build up our String with the summary and statistics
+		String summary = String.format("Name of database: %s\n", name);
+
+    	// List count
+		summary = summary + String.format("Overall count of crimes: %s\n", this.getTotalCrimeCount());
+		// TO DO: include counts!!!
+		summary = summary + "\n";
+
+		// List top and least 3
+		String[] cities = this.getMost3Cities();			
+		summary = summary + String.format("3 cities with most crimes: %s, %s, %s\n", cities[0], cities[1], cities[2]);
+		cities = this.getLeast3Cities();
+		summary = summary + String.format("3 cities with least crimes: %s, %s, %s\n", cities[0], cities[1], cities[2]);
+
+		Integer[] years = this.getMost3Years();			
+		summary = summary + String.format("3 years with most crimes: %d, %d, %d\n", years[0], years[1], years[2]);
+		years = this.getLeast3Years();
+		summary = summary + String.format("3 years with least crimes: %d, %d, %d\n", years[0], years[1], years[2]);
+
+		Integer[] months = this.getMost3Months();			
+		summary = summary + String.format("3 months with most crimes: %d, %d, %d\n", months[0], months[1], months[2]);
+		months = this.getLeast3Months();
+		summary = summary + String.format("3 months with least crimes: %d, %d, %d\n", months[0], months[1], months[2]);
+
+		Integer[] categories = this.getMost3Categories();			
+		summary = summary + String.format("3 categories with most crimes: %d, %d, %d\n", categories[0], categories[1], categories[2]);
+		categories = this.getLeast3Categories();
+		summary = summary + String.format("3 categories with least crimes: %d, %d, %d\n", categories[0], categories[1], categories[2]);
+
+		summary = summary + "\n";
+
+	    // Statistics:
+	    // Average of crimes per city
+	    Double average = this.getAveragePerCity();			
+		summary = summary + String.format("Mean crimes per city: %f\n", average);
+		// Median of crimes per city 
+		Double median = this.getMedianPerCity();			
+		summary = summary + String.format("Median crimes per city: %f\n", median);
+
+	    // Average of crimes per year
+	    average = this.getAveragePerYear();			
+		summary = summary + String.format("Mean crimes per year: %f\n", average);
+		// Median of crimes per year
+		median = this.getMedianPerYear();			
+		summary = summary + String.format("Median crimes per year: %f\n", median);
+
+		// Average of crimes per month
+	    average = this.getAveragePerMonth();			
+		summary = summary + String.format("Mean crimes per month (independent of year): %f\n", average);
+		// Median of crimes per month
+		median = this.getMedianPerMonth();			
+		summary = summary + String.format("Median crimes per month (independent of year): %f\n", median);
+
+	    // Average of crimes per crime category
+	    average = this.getAveragePerCategory();			
+		summary = summary + String.format("Mean crimes per crime category: %f\n", average);
+		// Median of crimes per crime category
+		median = this.getMedianPerCategory();			
+		summary = summary + String.format("Median crimes per crime category: %f\n", median);
+
+		return summary;
+
+	}
+
+}

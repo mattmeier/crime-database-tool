@@ -62,3 +62,5 @@ Also note that I chose to use noop=false option for the Producer to avoid duplic
 Note also that one difficulty was to deal with different sorts of data types in many different categories, i.e. analysis based on String and Integer values. Therefore, I often had to create two helper methods, one for Strings and one for Integers each. 
 
 Note that this project was handed in as an assigment for my "MPCS 51050 OO Architecture: Patterns, Technologies, Implementations" class in Spring 2015 at the University of Chicago.
+
+Also I want to point out that the code related to the Camel ActiveMQ elements is partly based on examples from Apache's Camel ActiveMQ online docs and examples from the "Camel in Action" book by Claus Ibsen and Jonathan Anstey.

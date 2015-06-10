@@ -1,3 +1,5 @@
+// Note that the code below is partly based on examples from Apache's Camel ActiveMQ online docs and examples from the "Camel in Action" book by Claus Ibsen and Jonathan Anstey
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
